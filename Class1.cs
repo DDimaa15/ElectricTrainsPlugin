@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace ElectricTrainsMods
 {
-    [BepInPlugin("com.electrictrains.mods", "Electric Trains Mods", "1.2.0")]
+    [BepInPlugin("com.electrictrains.mods", "Electric Trains Mods", "1.3.0")]
     public class Plugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> EnableAcceleration;
