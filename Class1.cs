@@ -37,22 +37,22 @@ namespace ElectricTrainsMods
 
         private void Awake()
         {
-            EnableAcceleration = Config.Bind("1. Ускорение", "Включить", true, "Включить ускорение");
-            ThrottleMultiplier = Config.Bind("1. Ускорение", "Множитель тяги", 1f, "Множитель силы тяги");
-            BrakeMultiplier = Config.Bind("1. Ускорение", "Множитель торможения", 1f, "Множитель тормозной силы");
-            EnableNoDerail = Config.Bind("2. Без схода с рельс", "Включить", true, "Отключить сход с рельс");
-            EnableBlockerPass = Config.Bind("3. Прозрачные красные барьеры", "Включить", true, "Проезд сквозь красные барьеры");
-            EnableInfinitePoints = Config.Bind("4. Бесконечные очки", "Включить", true, "Бесконечные очки");
-            EnableNoTraffic = Config.Bind("5. Отключение трафика", "Включить", true, "Отключить встречные поезда");
-            EnableFreeCamera = Config.Bind("6. Камера", "Включить", true, "Расширенные лимиты камеры");
-            CameraZoomMin = Config.Bind("6. Камера", "Зум минимум", 5f, "Мин. зум");
-            CameraZoomMax = Config.Bind("6. Камера", "Зум максимум", 179f, "Макс. зум");
-            CameraHeightMin = Config.Bind("6. Камера", "Высота минимум", -500f, "Мин. высота");
-            CameraHeightMax = Config.Bind("6. Камера", "Высота максимум", 2000f, "Макс. высота");
-            EnableUnlockFPS = Config.Bind("7. Анлок FPS", "Включить", true, "Снять лимит кадров");
-            EnableCruiseSmoothing = Config.Bind("8. Плавный круиз-контроль", "Включить", true, "Сглаживание круиз-контроля");
-            CruiseMaxChangePerSecond = Config.Bind("8. Плавный круиз-контроль", "Плавность", 5f, "Макс. изменение engine_force_cur в секунду");
-            EnableMapTeleport = Config.Bind("9. Телепорт по карте", "Включить", true, "Клик ЛКМ по карте телепортирует поезд");
+            EnableAcceleration = Config.Bind("1. Acceleration", "Enabled", true, "Enable acceleration multiplier");
+            ThrottleMultiplier = Config.Bind("1. Acceleration", "Throttle Multiplier", 1f, "Throttle force multiplier");
+            BrakeMultiplier = Config.Bind("1. Acceleration", "Brake Multiplier", 1f, "Brake force multiplier");
+            EnableNoDerail = Config.Bind("2. No Derail", "Enabled", true, "Disable train derailment");
+            EnableBlockerPass = Config.Bind("3. Barrier Pass", "Enabled", true, "Pass through red barriers");
+            EnableInfinitePoints = Config.Bind("4. Infinite Points", "Enabled", true, "Set points to 999999999");
+            EnableNoTraffic = Config.Bind("5. No Traffic", "Enabled", true, "Disable oncoming trains");
+            EnableFreeCamera = Config.Bind("6. Free Camera", "Enabled", true, "Extended camera limits");
+            CameraZoomMin = Config.Bind("6. Free Camera", "Zoom Min", 5f, "Minimum zoom");
+            CameraZoomMax = Config.Bind("6. Free Camera", "Zoom Max", 179f, "Maximum zoom");
+            CameraHeightMin = Config.Bind("6. Free Camera", "Height Min", -500f, "Minimum height");
+            CameraHeightMax = Config.Bind("6. Free Camera", "Height Max", 2000f, "Maximum height");
+            EnableUnlockFPS = Config.Bind("7. FPS Unlock", "Enabled", true, "Remove frame rate cap");
+            EnableCruiseSmoothing = Config.Bind("8. Smooth Cruise Control", "Enabled", true, "Smooth cruise control changes");
+            CruiseMaxChangePerSecond = Config.Bind("8. Smooth Cruise Control", "Smoothness", 5f, "Max engine_force_cur change per second");
+            EnableMapTeleport = Config.Bind("9. Map Teleport", "Enabled", true, "RMB on minimap to teleport train");
 
             TeleportHelper.Log = Logger;
 
