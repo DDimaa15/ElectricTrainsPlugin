@@ -58,6 +58,31 @@ Smooths out cruise control acceleration changes.
 **Right-click** on the minimap to teleport the train to that location.  
 **ПКМ** по миникарте телепортирует поезд в выбранную точку.
 
+### 10. Time Control / Управление временем суток
+Control the time of day in real time.  
+Управляйте временем суток в реальном времени.
+
+| Key / Клавиша | Action / Действие |
+|---|---|
+| `PageUp` | Advance time / Перемотать вперёд |
+| `PageDown` | Rewind time / Перемотать назад |
+| `F8` | Freeze/unfreeze time / Заморозить/разморозить время |
+| `F9` | Speed up time ×2 / Ускорить время ×2 |
+| `F10` | Slow down time ÷2 / Замедлить время ÷2 |
+
+Time range: 0 = night, 1 = sunrise, 2 = day, 3 = sunset. Step and all keys are configurable.  
+Диапазон: 0 = ночь, 1 = рассвет, 2 = день, 3 = закат. Шаг и все клавиши настраиваются.
+
+### 11. Weather Control / Управление погодой
+Force precipitation or clear sky. Weather type automatically matches the current season — rain in summer/spring/autumn, snow in winter.  
+Принудительно включайте осадки или ясное небо. Тип осадков определяется сезоном — дождь летом/весной/осенью, снег зимой.
+
+| Key / Клавиша | Action / Действие |
+|---|---|
+| `Keypad1` | Force precipitation / Включить осадки |
+| `Keypad3` | Clear sky / Ясное небо |
+| `Keypad4` | Cycle: auto → clear → precipitation / Цикл режимов |
+
 ---
 
 ## Configuration / Настройка
@@ -74,6 +99,10 @@ All options are configurable via `BepInEx/config/com.electrictrains.mods.cfg` or
   Телепорт по карте ставит поезд в ближайшую точку пути — точность зависит от плотности точек на участке.
 - If teleported to the wrong spot, stay on the map and right-click again to correct.  
   Если попали не туда — не закрывайте карту, кликните ПКМ ещё раз.
+- Time Control freeze persists between sessions via config — remember to unfreeze if needed.  
+  Заморозка времени сохраняется в конфиге — не забудьте разморозить при необходимости.
+- Weather Control overrides the game's natural weather cycle while active. Set to auto (Keypad4 cycle) to restore normal behaviour.  
+  Управление погодой перекрывает естественный цикл игры пока активно. Переключите в авто (цикл Keypad4) для восстановления нормального поведения.
 
 ---
 
