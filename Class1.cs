@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Reflection;
 using BepInEx;
@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace ElectricTrainsMods
 {
-    [BepInPlugin("com.electrictrains.mods", "Electric Trains Mods", "1.3.0")]
+    [BepInPlugin("com.electrictrains.mods", "Electric Trains Mods", "1.5.0")]
     public class Plugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> EnableAcceleration;
@@ -28,12 +28,42 @@ namespace ElectricTrainsMods
         public static ConfigEntry<bool> EnableCruiseSmoothing;
         public static ConfigEntry<float> CruiseMaxChangePerSecond;
         public static ConfigEntry<bool> EnableMapTeleport;
+        public static ConfigEntry<bool> EnableTimeControl;
+        public static ConfigEntry<KeyCode> TimeForwardKey;
+        public static ConfigEntry<KeyCode> TimeBackwardKey;
+        public static ConfigEntry<KeyCode> TimeFreezeKey;
+        public static ConfigEntry<KeyCode> TimeSpeedUpKey;
+        public static ConfigEntry<KeyCode> TimeSlowDownKey;
+        public static ConfigEntry<float> TimeStep;
+        public static ConfigEntry<bool> EnableWeatherControl;
+        public static ConfigEntry<KeyCode> WeatherRainKey;
+        public static ConfigEntry<KeyCode> WeatherClearKey;
+        public static ConfigEntry<KeyCode> WeatherCycleKey;
 
         public static MainTrain CurrentTrain;
         private static controls CtrlInstance;
+        internal static ManualLogSource Log;
+
+        // Time Control state
+        private static bool timeFrozen = false;
+        private static float timeSpeedMult = 1f;
+        private static readonly float defaultDayNight = 0.0027777778f;
+        private static readonly float defaultSunrise = 0.0055555557f;
+
+        // Weather Control state
+        // 0 = авто, 1 = ясно, 2 = дождь, 3 = снег
+        private static int weatherMode = 0;
 
         private static FieldInfo f_minimap_enabled = AccessTools.Field(typeof(controls), "minimap_enabled");
         private static FieldInfo f_Minimapcamera = AccessTools.Field(typeof(controls), "Minimapcamera");
+        private static FieldInfo f_timeOfDay = AccessTools.Field(typeof(controls), "timeOfDay");
+        private static FieldInfo f_dayNightDuration = AccessTools.Field(typeof(controls), "dayNightDuration");
+        private static FieldInfo f_sunriseSunsetDuration = AccessTools.Field(typeof(controls), "sunriseSunsetDuration");
+        private static FieldInfo f_sediment = AccessTools.Field(typeof(controls), "sediment");
+        private static FieldInfo f_season = AccessTools.Field(typeof(controls), "season");
+        private static MethodInfo m_setTimeOfTheDay = AccessTools.Method(typeof(controls), "SetTimeOfTheDay");
+        private static MethodInfo m_enableSediment = AccessTools.Method(typeof(Sediment), "enableSediment");
+        private static MethodInfo m_disableSediment = AccessTools.Method(typeof(Sediment), "disableSediment");
 
         private void Awake()
         {
@@ -53,8 +83,20 @@ namespace ElectricTrainsMods
             EnableCruiseSmoothing = Config.Bind("8. Smooth Cruise Control", "Enabled", true, "Smooth cruise control changes");
             CruiseMaxChangePerSecond = Config.Bind("8. Smooth Cruise Control", "Smoothness", 5f, "Max engine_force_cur change per second");
             EnableMapTeleport = Config.Bind("9. Map Teleport", "Enabled", true, "RMB on minimap to teleport train");
+            EnableTimeControl = Config.Bind("10. Time Control", "Enabled", true, "Control time of day");
+            TimeForwardKey = Config.Bind("10. Time Control", "Time Forward Key", KeyCode.PageUp, "Advance time of day");
+            TimeBackwardKey = Config.Bind("10. Time Control", "Time Backward Key", KeyCode.PageDown, "Rewind time of day");
+            TimeFreezeKey = Config.Bind("10. Time Control", "Freeze Toggle Key", KeyCode.F8, "Toggle time freeze");
+            TimeSpeedUpKey = Config.Bind("10. Time Control", "Speed Up Key", KeyCode.F9, "Speed up time (x2 each press)");
+            TimeSlowDownKey = Config.Bind("10. Time Control", "Slow Down Key", KeyCode.F10, "Slow down time (div2 each press)");
+            TimeStep = Config.Bind("10. Time Control", "Time Step", 0.1f, "How much time shifts per keypress (0-4 range)");
+            EnableWeatherControl = Config.Bind("11. Weather Control", "Enabled", true, "Control weather");
+            WeatherRainKey = Config.Bind("11. Weather Control", "Force Precipitation Key", KeyCode.Keypad1, "Force rain or snow depending on season");
+            WeatherClearKey = Config.Bind("11. Weather Control", "Clear Sky Key", KeyCode.Keypad3, "Clear sky");
+            WeatherCycleKey = Config.Bind("11. Weather Control", "Cycle Weather Key", KeyCode.Keypad4, "Cycle: auto -> clear -> precipitation");
 
             TeleportHelper.Log = Logger;
+            Log = Logger;
 
             var harmony = new Harmony("com.electrictrains.mods");
             if (EnableAcceleration.Value) harmony.PatchAll(typeof(Patch_Acceleration));
@@ -70,18 +112,19 @@ namespace ElectricTrainsMods
             if (EnableUnlockFPS.Value) StartCoroutine(UnlockFPS());
             if (EnableCruiseSmoothing.Value) harmony.PatchAll(typeof(Patch_CruiseSmoothing));
             if (EnableMapTeleport.Value) harmony.PatchAll(typeof(Patch_CatchTrain));
+            if (EnableWeatherControl.Value) harmony.PatchAll(typeof(Patch_WeatherControl));
 
-            Logger.LogInfo("Electric Trains Mods loaded!");
+            Logger.LogInfo("Electric Trains Mods v1.5.0 loaded!");
         }
 
         private void Update()
         {
-            if (CurrentTrain == null) return;
+            if (CtrlInstance == null)
+                CtrlInstance = FindObjectOfType<controls>();
 
-            if (EnableMapTeleport.Value && Input.GetMouseButtonDown(1))
+            // ========== Map Teleport ==========
+            if (CurrentTrain != null && EnableMapTeleport.Value && Input.GetMouseButtonDown(1))
             {
-                if (CtrlInstance == null)
-                    CtrlInstance = FindObjectOfType<controls>();
                 if (CtrlInstance == null) { Logger.LogInfo("[MapTeleport] controls не найден"); return; }
 
                 bool mapOpen = f_minimap_enabled != null && (bool)f_minimap_enabled.GetValue(CtrlInstance);
@@ -115,7 +158,97 @@ namespace ElectricTrainsMods
                 Logger.LogInfo($"[MapTeleport] nearest point={nearest}, dist={Mathf.Sqrt(minDist)}");
                 TeleportHelper.TeleportToPoint(CurrentTrain, nearest);
             }
+
+            // ========== Time Control ==========
+            if (EnableTimeControl.Value && CtrlInstance != null)
+            {
+                if (Input.GetKeyDown(TimeFreezeKey.Value))
+                {
+                    timeFrozen = !timeFrozen;
+                    ApplyTimeSpeed();
+                    Logger.LogInfo($"[TimeControl] Freeze={timeFrozen}");
+                }
+                if (Input.GetKeyDown(TimeSpeedUpKey.Value))
+                {
+                    timeSpeedMult = Mathf.Min(timeSpeedMult * 2f, 64f);
+                    if (!timeFrozen) ApplyTimeSpeed();
+                    Logger.LogInfo($"[TimeControl] Speed mult={timeSpeedMult}");
+                }
+                if (Input.GetKeyDown(TimeSlowDownKey.Value))
+                {
+                    timeSpeedMult = Mathf.Max(timeSpeedMult * 0.5f, 0.125f);
+                    if (!timeFrozen) ApplyTimeSpeed();
+                    Logger.LogInfo($"[TimeControl] Speed mult={timeSpeedMult}");
+                }
+                if (Input.GetKeyDown(TimeForwardKey.Value)) ShiftTime(TimeStep.Value);
+                if (Input.GetKeyDown(TimeBackwardKey.Value)) ShiftTime(-TimeStep.Value);
+            }
+
+            // ========== Weather Control ==========
+            if (EnableWeatherControl.Value && CtrlInstance != null)
+            {
+                if (Input.GetKeyDown(WeatherRainKey.Value))   SetWeather(2);
+                if (Input.GetKeyDown(WeatherClearKey.Value))  SetWeather(1);
+                if (Input.GetKeyDown(WeatherCycleKey.Value))  SetWeather(weatherMode == 0 ? 1 : weatherMode == 1 ? 2 : 0);
+            }
         }
+
+        private void ShiftTime(float delta)
+        {
+            if (CtrlInstance == null || f_timeOfDay == null) return;
+            float current = (float)f_timeOfDay.GetValue(CtrlInstance);
+            float newTime = (current + delta + 4f) % 4f;
+            f_timeOfDay.SetValue(CtrlInstance, newTime);
+            m_setTimeOfTheDay?.Invoke(CtrlInstance, new object[] { newTime });
+            Logger.LogInfo($"[TimeControl] timeOfDay={newTime:F2}");
+        }
+
+        private void ApplyTimeSpeed()
+        {
+            if (f_dayNightDuration == null || f_sunriseSunsetDuration == null) return;
+            if (timeFrozen)
+            {
+                f_dayNightDuration.SetValue(null, 0f);
+                f_sunriseSunsetDuration.SetValue(null, 0f);
+            }
+            else
+            {
+                f_dayNightDuration.SetValue(null, defaultDayNight * timeSpeedMult);
+                f_sunriseSunsetDuration.SetValue(null, defaultSunrise * timeSpeedMult);
+            }
+        }
+
+        internal static void SetWeather(int mode)
+        {
+            weatherMode = mode;
+            if (CtrlInstance == null || f_sediment == null) return;
+
+            Sediment sed = f_sediment.GetValue(CtrlInstance) as Sediment;
+            if (sed == null) return;
+
+            switch (mode)
+            {
+                case 0: // Авто
+                    Log?.LogInfo("[Weather] Auto");
+                    break;
+
+                case 1: // Ясно
+                    sed.opacityMult = 0f;
+                    m_disableSediment?.Invoke(sed, null);
+                    Log?.LogInfo("[Weather] Clear sky");
+                    break;
+
+                case 2: // Осадки по сезону (зима=снег, иначе=дождь)
+                    bool isWinter = f_season != null && (int)f_season.GetValue(CtrlInstance) == 2;
+                    sed.isWinter = isWinter;
+                    sed.opacityMult = 1f;
+                    m_enableSediment?.Invoke(sed, null);
+                    Log?.LogInfo($"[Weather] Precipitation (isWinter={isWinter})");
+                    break;
+            }
+        }
+
+        public static int GetWeatherMode() => weatherMode;
 
         private IEnumerator UnlockFPS()
         {
@@ -261,6 +394,45 @@ namespace ElectricTrainsMods
             if (Mathf.Abs(newVal - current) > 0.001f)
                 engineForceCur.SetValue(__instance, newVal);
             lastEngineForce = newVal;
+        }
+    }
+
+    // ========== 11. Погода — удерживаем opacityMult каждый кадр ==========
+    // SedimentControl корутина каждую секунду перезаписывает opacityMult,
+    // поэтому держим значение в Update самого плагина через корутину
+    [HarmonyPatch(typeof(Sediment))]
+    internal static class Patch_WeatherControl
+    {
+        private static FieldInfo f_season = AccessTools.Field(typeof(controls), "season");
+
+        [HarmonyPatch("FixedUpdate"), HarmonyPostfix]
+        static void KeepWeather(Sediment __instance)
+        {
+            if (!Plugin.EnableWeatherControl.Value) return;
+            int mode = Plugin.GetWeatherMode();
+            if (mode == 0) return;
+
+            switch (mode)
+            {
+                case 1: // Ясно
+                    __instance.opacityMult = 0f;
+                    break;
+                case 2: // Осадки по сезону
+                    var ctrl = UnityEngine.Object.FindObjectOfType<controls>();
+                    __instance.isWinter = ctrl != null && f_season != null && (int)f_season.GetValue(ctrl) == 2;
+                    __instance.opacityMult = 1f;
+                    break;
+            }
+
+            // Принудительно включаем sediment если выключен
+            if (mode != 1 && !__instance.sedimentEnabled)
+            {
+                __instance.enableSediment();
+            }
+            else if (mode == 1 && __instance.sedimentEnabled)
+            {
+                __instance.disableSediment();
+            }
         }
     }
 
