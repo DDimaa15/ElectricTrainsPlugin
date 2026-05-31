@@ -31,8 +31,8 @@ Disables train derailment.
 Отключает сход поезда с рельс.
 
 ### 3. Transparent Red Barriers / Прозрачные красные барьеры
-Allows passing through red blocker barriers.  
-Позволяет проезжать сквозь красные барьеры-тупики.
+Allows passing through red blocker barriers that are on the first maps.  
+Позволяет проезжать сквозь красные барьеры-тупики, которые есть на первых картах.
 
 ### 4. Infinite Points / Бесконечные очки
 Sets available points to 999999999.  
@@ -42,7 +42,7 @@ Sets available points to 999999999.
 Disables oncoming trains.  
 Отключает встречные поезда.
 
-### 6. Free Camera / Свободная камера
+### 6. Extended camera / Расширенная камера
 Expands camera zoom and height limits.  
 Расширяет лимиты зума и высоты камеры.
 
