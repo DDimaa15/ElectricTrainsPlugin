@@ -74,11 +74,11 @@ namespace ElectricTrainsMods
             EnableBlockerPass = Config.Bind("3. Barrier Pass", "Enabled", true, "Pass through red barriers");
             EnableInfinitePoints = Config.Bind("4. Infinite Points", "Enabled", true, "Set points to 999999999");
             EnableNoTraffic = Config.Bind("5. No Traffic", "Enabled", true, "Disable oncoming trains");
-            EnableFreeCamera = Config.Bind("6. Free Camera", "Enabled", true, "Extended camera limits");
-            CameraZoomMin = Config.Bind("6. Free Camera", "Zoom Min", 5f, "Minimum zoom");
-            CameraZoomMax = Config.Bind("6. Free Camera", "Zoom Max", 179f, "Maximum zoom");
-            CameraHeightMin = Config.Bind("6. Free Camera", "Height Min", -500f, "Minimum height");
-            CameraHeightMax = Config.Bind("6. Free Camera", "Height Max", 2000f, "Maximum height");
+            EnableFreeCamera = Config.Bind("6. Extended Camera", "Enabled", true, "Extended camera limits");
+            CameraZoomMin = Config.Bind("6. Extended Camera", "Zoom Min", 5f, "Minimum zoom");
+            CameraZoomMax = Config.Bind("6. Extended Camera", "Zoom Max", 179f, "Maximum zoom");
+            CameraHeightMin = Config.Bind("6. Extended Camera", "Height Min", -500f, "Minimum height");
+            CameraHeightMax = Config.Bind("6. Extended Camera", "Height Max", 2000f, "Maximum height");
             EnableUnlockFPS = Config.Bind("7. FPS Unlock", "Enabled", true, "Remove frame rate cap");
             EnableCruiseSmoothing = Config.Bind("8. Smooth Cruise Control", "Enabled", true, "Smooth cruise control changes");
             CruiseMaxChangePerSecond = Config.Bind("8. Smooth Cruise Control", "Smoothness", 5f, "Max engine_force_cur change per second");
